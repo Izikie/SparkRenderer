@@ -4,6 +4,7 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryUtil;
 
 // Basic Window Manager From Tutorial For Testing
@@ -19,11 +20,12 @@ public class WindowManager {
     private long window;
     private final Matrix4f projectionMatrix;
 
-    public WindowManager(String title, int width, int height, boolean fullscreen, boolean vSync) {
+    public WindowManager(String title, int width, int height, boolean reSizeable, boolean fullScreen, boolean vSync) {
         this.title = title;
         this.width = width;
         this.height = height;
-        this.fullScreen = fullscreen;
+        this.reSizeable = reSizeable;
+        this.fullScreen = fullScreen;
         this.vSync = vSync;
         projectionMatrix = new Matrix4f();
     }
@@ -36,11 +38,16 @@ public class WindowManager {
 
         GLFW.glfwDefaultWindowHints();
         GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GL20.GL_FALSE);
-        GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, GL20.GL_TRUE);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 3);
-        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 2);
+        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 4);
+        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 6);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_FORWARD_COMPAT, GL20.GL_TRUE);
+
+        if (reSizeable) {
+            GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, GL20.GL_TRUE);
+        } else {
+            GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, GL20.GL_FALSE);
+        }
 
         if (width == 0 || height == 0) {
             width = 100;
@@ -49,7 +56,7 @@ public class WindowManager {
             fullScreen = true;
         }
 
-        window = GLFW.glfwCreateWindow(width, height, "Test", MemoryUtil.NULL, MemoryUtil.NULL);
+        window = GLFW.glfwCreateWindow(width, height, title, MemoryUtil.NULL, MemoryUtil.NULL);
         if (window == MemoryUtil.NULL)
             throw new RuntimeException("Failed to create GLFW window");
 
@@ -59,15 +66,12 @@ public class WindowManager {
         });
 
         GLFW.glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
-            if (action == GLFW.GLFW_PRESS) {
-                switch (key) {
-                    case GLFW.GLFW_KEY_ESCAPE -> GLFW.glfwSetWindowShouldClose(window, true);
-                    case GLFW.GLFW_KEY_F11 -> toggleFullScreen(window);
-                }
+            if (action == GLFW.GLFW_PRESS && key == GLFW.GLFW_KEY_ESCAPE) {
+                GLFW.glfwSetWindowShouldClose(window, true);
             }
         });
 
-        toggleFullScreen(window);
+        setFullScreen(window, fullScreen);
 
         GLFW.glfwMakeContextCurrent(window);
 
@@ -78,11 +82,11 @@ public class WindowManager {
 
         GL.createCapabilities();
 
-        GL20.glClearColor(0.0F, 0.0F, 0.0F, 0.0F);
-        GL20.glEnable(GL20.GL_DEPTH_TEST);
-        GL20.glEnable(GL20.GL_STENCIL_TEST);
-        GL20.glEnable(GL20.GL_CULL_FACE);
-        GL20.glCullFace(GL20.GL_BACK);
+        GL46.glClearColor(0.0F, 0.0F, 0.0F, 0.0F);
+        GL46.glEnable(GL20.GL_DEPTH_TEST);
+        GL46.glEnable(GL20.GL_STENCIL_TEST);
+        GL46.glEnable(GL20.GL_CULL_FACE);
+        GL46.glCullFace(GL20.GL_BACK);
     }
 
     public void update() {
@@ -100,11 +104,6 @@ public class WindowManager {
 
     public void setFullScreen(long window, boolean fullScreen) {
         if (fullScreen) {
-            GLFW.glfwDestroyWindow(window);
-            window = GLFW.glfwCreateWindow(width, height, "Test", MemoryUtil.NULL, MemoryUtil.NULL);
-            if (window == MemoryUtil.NULL)
-                throw new RuntimeException("Failed to create fullscreen GLFW window");
-
             GLFW.glfwMaximizeWindow(window);
         } else {
             GLFWVidMode vidMode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
@@ -116,8 +115,12 @@ public class WindowManager {
         return GLFW.glfwGetKey(window, keyCode) == GLFW.GLFW_PRESS;
     }
 
-    public boolean isOpen() {
+    public boolean shouldClose() {
         return GLFW.glfwWindowShouldClose(window);
+    }
+
+    public void setTitle(String title) {
+        GLFW.glfwSetWindowTitle(window, title);
     }
 
     public int getWidth() {

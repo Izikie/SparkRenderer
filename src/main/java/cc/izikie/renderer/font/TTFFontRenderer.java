@@ -3,7 +3,7 @@ package cc.izikie.renderer.font;
 import java.awt.*;
 
 // TOOD: Implement
-public class TTFFontRenderer implements IFontRenderer{
+public class TTFFontRenderer implements IFontRenderer {
 
     /**
      * Renders basic text at a specified position in the specified color.
